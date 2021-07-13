@@ -9,14 +9,25 @@ HEADERTITLE="Github Sync Bot v1.0"
 
 # main function ˘Ô≈ôﺣ
 function main() {
+  # with test we also show config details
+  if (("$TEST" == 1)); then
+    showConfValues
+  fi
   # check that all needed values are set
   checkConfValues
   # clone all needed repos
   cloneRepos
   # move the files and folders
   moveFoldersFiles
-  # now to add the merge or pull request part
-  # soon....
+  # check what action to take to get
+  # the changes into the target repository
+  if (("$TARGET_REPO_ACTION" == 1)); then
+    # we must merge directly to target
+    echo "we merge directly into target... soon"
+  else
+    # we should create a pull request
+    echo "we create a pull request via the github CLI... soon"
+  fi
 }
 
 # show the configuration values
@@ -127,7 +138,7 @@ function rebaseWithUpstream () {
     echo "Failed to fetch upstream/${git_branch} successfully, check that the GitHub user has access to this repo!"
     exit 1
   fi
-  # make sure we ae on the targeted branch
+  # make sure we are on the targeted branch
   git checkout "$git_branch"
   # reset this branch to be same as upstream
   git reset --hard "${git_upstream}/${git_branch}" --quiet
@@ -188,10 +199,21 @@ function moveFoldersFiles () {
         exit 1
       fi
     done
+  # move just one folder (so it has no semicolons)
+  elif [[ "${SOURCE_REPO_FOLDERS}" != *";"* ]] && [[ "${TARGET_REPO_FOLDERS}" != *";"* ]]; then
+    # check if we have source files and it has no semicolons like the folders
+    if [ ${#SOURCE_REPO_FILES} -ge 2 ] && [[ "${SOURCE_REPO_FILES}" != *";"* ]]; then
+      moveFolderFiles "${SOURCE_REPO_FOLDERS}" "${TARGET_REPO_FOLDERS}" "${SOURCE_REPO_FILES}"
+    else
+      moveFolder "${SOURCE_REPO_FOLDERS}" "${TARGET_REPO_FOLDERS}"
+    fi
+  else
+    echo "Source folder:${SOURCE_REPO_FOLDERS} -> Target folder:${TARGET_REPO_FOLDERS} mismatched!"
+    exit 1
   fi
 }
 
-# move the source folder's 'files to the target folders
+# move the source folder's files to the target folders
 function moveFolderFiles () {
   local source_folder="$1"
   local target_folder="$2"
@@ -370,7 +392,7 @@ Usage: ${0##*/:-} [OPTION...]
     target.repo.folders=[folder/path_a;folder/path_b]
      # To merge or just make a PR (0 = PR; 1 = Merge)
     target.repo.merge=1
-     # Target fork is rebased (if out of sync with upstream target) then updated and used to make a PR or Merge
+     # Target fork is rebased then updated and used to make a PR or Merge
     target.repo.fork=[org]/[repo]
   see: conf/example
 
@@ -409,7 +431,7 @@ TARGET_REPO=""
 TARGET_REPO_BRANCH=""
 TARGET_REPO_FOLDERS=""
 TARGET_REPO_ACTION=0 # To merge or just make a PR (0 = PR; 1 = Merge)
-TARGET_REPO_FORK="" # Target fork is rebased (if out of sync with upstream target) then updated and used to make a PR or Merge
+TARGET_REPO_FORK="" # Target fork is rebased then updated and used to make a PR or Merge
 
 # check if we have options
 while :; do
