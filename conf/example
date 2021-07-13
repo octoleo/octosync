@@ -1,0 +1,69 @@
+#######################################################################################################
+# The Configuration File
+# You must update each value as needed (defaults do not work)
+# All values required, except source[dot]repo[dot]files (omitting that will sync all files in folders)
+#######################################################################################################
+
+# set the source repo path
+source.repo.path=org/repo
+
+# set the source repo branch
+source.repo.branch=main
+
+# set the source repo folders
+# separate multiple paths with a semicolon
+# paths as seen from repo root
+# each path will require the same number(position) path in the target[dot]repo[dot]folders
+#   so that the following will be true:
+#       source[dot]repo[dot]folders=folder/path_a;folder/path_b
+#           maps<->to
+#       target[dot]repo[dot]folders=folder/another/path_a;folder/path_b
+source.repo.folders=folder/path_a;folder/path_b
+
+# set the source repo files (not required)
+# omitting this will sync all files in the folders
+# separate multiple folders files with a semicolon
+# separate multiple files in a folder with a comma
+# each set of files will require the same number(position) path in the source[dot]repo[dot]folders
+#   setting a 0 in a position will allow all files & sub-folders of that folder to be synced
+#   setting a 1 in a position will allow only all files in that folder to be synced
+#   setting a 2 in a position will allow only all sub-folders in that folder to be synced
+#
+#   so that the following will be true:
+#       source[dot]repo[dot]folders=folder/path_a;folder/path_b;folder/path_c
+#           maps<->to
+#       source[dot]repo[dot]files=0;a-file.js,b-file.js,sub-folder/file.html;the-file-in-folder-c.php
+#           folder 0=folder/path_a all files and folders are synced
+#           folder 1=folder/path_b only three files are synced (a-file.js and b-file.js and sub-folder/file.html)
+#           folder 2=folder/path_c only one file is synced (the-file-in-folder-c.php)
+source.repo.files=0;a-file.js,b-file.js
+
+#######################################################################################################
+
+# set the target repo path
+target.repo.path=org1/repo1
+
+# set the target repo branch
+target.repo.branch=master
+
+# set the target repo folders
+# separate multiple paths with a semicolon
+# paths as seen from repo root
+# each path will require the same number(position) path in the source[dot]repo[dot]folders
+#   so that the following will be true:
+#       target[dot]repo[dot]folders=folder/another/path_a;folder/path_b
+#           maps<->to
+#       source[dot]repo[dot]folders=folder/path_a;folder/path_b
+target.repo.folders=folder/path_a;folder/path_b
+
+# To merge or just make a PR (0 = PR; 1 = Merge)
+target.repo.merge=1
+
+# Target fork is rebased (if out of sync with upstream target)
+# Then updated and used to make a PR or Merge
+target.repo.fork=org2/repo2
+
+#######################################################################################################
+# To deactivate a value remove the dot
+# example: source[dot]repo
+#######################################################################################################

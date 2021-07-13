@@ -1,0 +1,42 @@
+name: "Test Sync Bot"
+
+  # so we can manually run a sync test
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: [ubuntu-20.04]
+    steps:
+      # We use this approach to sign all commits
+      # Also to use basic git commands in the sync script
+      # with no further authentication needed
+      # see: https://github.com/vdm-io/github-user
+      - name: Setup gitHub User Details
+        # how to set secrets?
+        # see: https://docs.github.com/en/actions/reference/encrypted-secrets
+        env:
+          # The github username with access
+          GIT_USER: ${{ secrets.GIT_USER }}
+          # The github user email with access
+          GIT_EMAIL: ${{ secrets.GIT_EMAIL }}
+          # The name of the myprivatekeys.asc user
+          GPG_USER: ${{ secrets.GPG_USER }}
+          # gpg -a --export-secret-keys >myprivatekeys.asc
+          # The whole key file text from the above myprivatekeys.asc
+          # This key must be linked to the github user being used
+          GPG_KEY: ${{ secrets.GPG_KEY }}
+          # A id_ed25519 ssh private key liked to the github user account
+          # see: https://docs.github.com/en/github-ae@latest/github/authenticating-to-github/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent#generating-a-new-ssh-key
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+          # A id_ed25519.pub ssh public key liked to the github user account
+          SSH_PUB: ${{ secrets.SSH_PUB }}
+        run: |
+          /bin/bash <(/bin/curl -s https://raw.githubusercontent.com/vdm-io/github-user/master/src/setup.sh) --gpg-key "$GPG_KEY" --gpg-user "$GPG_USER" --ssh-key "$SSH_KEY" --ssh-pub "$SSH_PUB" --git-user "$GIT_USER" --git-email "$GIT_EMAIL"
+      - name: Clone Sync Bot Repo
+          # this is the repo that does the work
+          run: |
+            /bin/git clone -b master --single-branch git@github.com:vdm-io/github-sync-bot.git bot
+      - name: Sync The Repo Files
+        run: |
+          /bin/bash ./bot/src/sync.sh --conf=bot/conf/joomla4.0-dev-lang --test
+          /bin/bash ./bot/src/sync.sh --conf=bot/conf/lang-joomla4.0-dev --test

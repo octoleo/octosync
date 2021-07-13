@@ -1,0 +1,46 @@
+#######################################################################################################
+# The Configuration File to move core_translation files to Joomla 4.0
+#######################################################################################################
+
+# set the source repo path
+source.repo.path=joomla/core-translations
+
+# set the source repo branch
+source.repo.branch=main
+
+# set the source repo folders
+# separate multiple paths with a semicolon
+# paths as seen from repo root
+# each path will require the same number(position) path in the target[dot]repo[dot]folders
+#   so that the following will be true:
+#       source[dot]repo[dot]folders=folder/path_a;folder/path_b
+#           maps<->to
+#       target[dot]repo[dot]folders=folder/another/path_a;folder/path_b
+source.repo.folders=joomla_v4/translations/core/installation/language/en-GB;joomla_v4/translations/core/build/media_source/system/js/fields/calendar-locales
+
+#######################################################################################################
+
+# set the target repo path
+target.repo.path=joomla/joomla-cms
+
+# set the target repo branch
+target.repo.branch=4.0-dev
+
+# set the target repo folders
+# separate multiple paths with a semicolon
+# paths as seen from repo root
+# each path will require the same number(position) path in the source[dot]repo[dot]folders
+#   so that the following will be true:
+#       target[dot]repo[dot]folders=folder/another/path_a;folder/path_b
+#           maps<->to
+#       source[dot]repo[dot]folders=folder/path_a;folder/path_b
+target.repo.folders=installation/language/en-GB;build/media_source/system/js/fields/calendar-locales
+
+# To merge or just make a PR (0 = PR; 1 = Merge)
+target.repo.merge=0
+
+# Target fork is rebased (if out of sync with upstream target)
+# Then updated and used to make a PR or Merge
+target.repo.fork=llewellynvdm/joomla-cms
+
+#######################################################################################################
