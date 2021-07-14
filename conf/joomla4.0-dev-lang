@@ -36,6 +36,10 @@ target.repo.branch=main
 #       source[dot]repo[dot]folders=folder/path_a;folder/path_b
 target.repo.folders=joomla_v4/source/language/en-GB;joomla_v4/source/administrator/language/en-GB;joomla_v4/source/api/language/en-GB
 
+# Target fork is rebased (HARD RESET TO UPSTREAM TARGET)
+# Then updated and used to make a PR or Merge
+target.repo.fork=Llewellynvdm/core-translations
+
 # To merge or just make a PR (0 = PR; 1 = Merge)
 target.repo.merge=1
 

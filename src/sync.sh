@@ -57,14 +57,14 @@ function checkConfValues () {
   # make sure TARGET_REPO is set
   [[ ! "${TARGET_REPO}" == *"/"* ]] && echo "TARGET_REPO:${TARGET_REPO} is not a repo path!" && ERROR=1
   [[ ! `wget -S --spider "https://github.com/${TARGET_REPO}"  2>&1 | grep 'HTTP/1.1 200 OK'` ]] && \
-    echo "TARGET_REPO:https://github.com/${TARGET_REPO} is not set correctly, or the guthub user does not have access!" \
-    && ERROR=1
+    echo "TARGET_REPO:https://github.com/${TARGET_REPO} is not set correctly, or the guthub user does not have access!" && \
+    ERROR=1
 
   # make sure TARGET_REPO_BRANCH is set
   [ ${#TARGET_REPO_BRANCH} -le 1 ] && echo "TARGET_REPO_BRANCH:${TARGET_REPO_BRANCH} is not set correctly!" && ERROR=1
 
   # make sure TARGET_REPO_FOLDERS is set
-  [ ${#TARGET_REPO_FOLDERS} -le 1 ] && echo "TARGET_REPO_FOLDERS:${TARGET_REPO_FOLDERS} is not set correctly!" &&  ERROR=1
+  [ ${#TARGET_REPO_FOLDERS} -le 1 ] && echo "TARGET_REPO_FOLDERS:${TARGET_REPO_FOLDERS} is not set correctly!" && ERROR=1
 
   # check that the correct action is set
   ! (("$TARGET_REPO_ACTION" == 1)) && ! (("$TARGET_REPO_ACTION" == 0)) && echo "TARGET_REPO_ACTION:${TARGET_REPO_ACTION} is not set correctly!" && ERROR=1
@@ -72,19 +72,19 @@ function checkConfValues () {
   # make sure TARGET_REPO_FORK is set correctly if set
   if [ ${#TARGET_REPO_FORK} -ge 1 ]; then
     [[ ! "${TARGET_REPO_FORK}" == *"/"* ]] && echo "TARGET_REPO_FORK:${TARGET_REPO_FORK} is not a repo path!" && ERROR=1
-    ! wget --spider "https://github.com/${TARGET_REPO_FORK}" 2>/dev/null \
-      && echo "TARGET_REPO_FORK:https://github.com/${TARGET_REPO_FORK} is not set correctly, or the guthub user does not have access!" \
-      && ERROR=1
+    [[ ! `wget -S --spider "https://github.com/${TARGET_REPO_FORK}"  2>&1 | grep 'HTTP/1.1 200 OK'` ]] && \
+      echo "TARGET_REPO_FORK:https://github.com/${TARGET_REPO_FORK} is not set correctly, or the guthub user does not have access!" && \
+      ERROR=1
   fi
 
   # if error found exit
-  (("$ERROR" == 1)) && exit 1
+  (("$ERROR" == 1)) && exit 19
 }
 
 # clone the repo
 function cloneRepos () {
   # clone the source repo (we don't need access on this one)
-  [[ ! "${SOURCE_REPO}" == *"/"* ]] && cloneRepo "https://github.com/${SOURCE_REPO}.git" "${SOURCE_REPO_BRANCH}" "source_repo"
+  [[ "${SOURCE_REPO}" == *"/"* ]] && cloneRepo "https://github.com/${SOURCE_REPO}.git" "${SOURCE_REPO_BRANCH}" "source_repo"
   # clone the forked target repo if set
   if [[ "${TARGET_REPO_FORK}" == *"/"* ]]; then
     # we need access on this one, so we use git@github.com:
@@ -97,7 +97,7 @@ function cloneRepos () {
     cloneRepo "${TARGET_REPO}" "git@github.com:${TARGET_REPO_BRANCH}.git" "target_repo"
   else
     echo "You must set TARGET_REPO:${TARGET_REPO} to target.repo.merge=1 if no target.repo.fork is given!"
-    exit 1
+    exit 20
   fi
 }
 
@@ -107,13 +107,21 @@ function cloneRepo () {
   local git_repo="$1"
   local git_branch="$2"
   local git_folder="$3"
-  # clone the repo (but only a single branch)
-  git clone -b "$git_branch" --single-branch "$git_repo" "$git_folder" --quiet
-  if [ $? -eq 0 ];then
-    echo "${git_repo} was cloned successfully."
+  # with test we don't clone again
+  # if folder already exist
+  if (("$TEST" == 1)) && [ -d "${git_folder}" ]; then
+    echo "folder:${git_folder} already exist, repo:${git_repo} was not cloned again. (test mode)"
   else
-    echo "${git_repo} failed to cloned successfully, check that the GitHub user has access to this repo!"
-    exit 1
+    # make sure the folder does not exist
+    [ -d "${git_folder}" ] && rm -fr "${git_folder}"
+    # clone the repo (but only a single branch)
+    git clone -b "$git_branch" --single-branch "$git_repo" "$git_folder" --quiet
+    if [ $? -eq 0 ];then
+      echo "${git_repo} was cloned successfully."
+    else
+      echo "${git_repo} failed to cloned successfully, check that the GitHub user has access to this repo!"
+      exit 21
+    fi
   fi
 }
 
@@ -135,7 +143,7 @@ function rebaseWithUpstream () {
     echo "upstream:${git_repo_upstream} was added successfully."
   else
     echo "Failed to add upstream:${git_repo_upstream} successfully, check that the GitHub user has access to this repo!"
-    exit 1
+    exit 10
   fi
   # now fetch this upstream repo
   git fetch "$git_upstream/${git_branch}" --quiet
@@ -143,7 +151,7 @@ function rebaseWithUpstream () {
     echo "upstream/${git_branch} was fetched successfully."
   else
     echo "Failed to fetch upstream/${git_branch} successfully, check that the GitHub user has access to this repo!"
-    exit 1
+    exit 11
   fi
   # make sure we are on the targeted branch
   git checkout "$git_branch"
@@ -153,7 +161,7 @@ function rebaseWithUpstream () {
     echo "upstream:${git_repo_upstream} was rebased into the forked repo successfully."
   else
     echo "Failed to rebase upstream:${git_repo_upstream} successfully, check that the GitHub user has access to this repo!"
-    exit 1
+    exit 12
   fi
   # make sure this is not a test
   if (("$TEST" == 1)); then
@@ -165,7 +173,7 @@ function rebaseWithUpstream () {
       echo "The forked repo of upstream:${git_repo_upstream} successfully updated."
     else
       echo "Failed to update the forked repo, check that the GitHub user has access to this repo!"
-      exit 1
+      exit 13
     fi
   fi
   # return to original folder
@@ -195,7 +203,7 @@ function moveFoldersFiles () {
             moveFolderFiles "${source_folders[key]}" "${target_folders[key]}" "${source_files[key]}"
           else
             echo "Source folder:${source_folders[key]} file mismatched!"
-            exit 1
+            exit 14
           fi
         # just move all the content of the folder
         else
@@ -203,7 +211,7 @@ function moveFoldersFiles () {
         fi
       else
         echo "Source folder:${source_folders[key]} mismatched!"
-        exit 1
+        exit 15
       fi
     done
   # move just one folder (so it has no semicolons)
@@ -216,7 +224,7 @@ function moveFoldersFiles () {
     fi
   else
     echo "Source folder:${SOURCE_REPO_FOLDERS} -> Target folder:${TARGET_REPO_FOLDERS} mismatched!"
-    exit 1
+    exit 16
   fi
 }
 
@@ -459,7 +467,7 @@ while :; do
       shift
     else
       echo 'ERROR: "--conf" requires a non-empty option argument.'
-      exit 1
+      exit 17
     fi
     ;;
   --conf=?* | --config=?*)
@@ -467,7 +475,7 @@ while :; do
     ;;
   --conf= | --config) # Handle the case of an empty --conf=
     echo 'ERROR: "--conf" requires a non-empty option argument.'
-    exit 1
+    exit 17
     ;;
   *) # Default case: No more options, so break out of the loop.
     break ;;
@@ -476,7 +484,7 @@ while :; do
 done
 
 # We must have a config file
-[ ! -f "${CONFIG_FILE}" ] && echo >&2 "The config:${CONFIG_FILE} is not set or found. Aborting." && exit 1
+[ ! -f "${CONFIG_FILE}" ] && echo >&2 "The config:${CONFIG_FILE} is not set or found. Aborting." && exit 18
 
 # set the configuration values
 setConfValues

@@ -39,7 +39,7 @@ target.repo.folders=installation/language/en-GB;build/media_source/system/js/fie
 # To merge or just make a PR (0 = PR; 1 = Merge)
 target.repo.merge=0
 
-# Target fork is rebased (if out of sync with upstream target)
+# Target fork is rebased (HARD RESET TO UPSTREAM TARGET)
 # Then updated and used to make a PR or Merge
 target.repo.fork=llewellynvdm/joomla-cms
 
