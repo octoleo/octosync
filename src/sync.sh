@@ -15,58 +15,58 @@ command -v git >/dev/null 2>&1 || {
 STARTBUILD=$(date +"%s")
 # use UTC+00:00 time also called zulu
 STARTDATE=$(TZ=":ZULU" date +"%m/%d/%Y @ %R (UTC)")
-# main project Header
-HEADERTITLE="Github Sync Bot v1.0"
+# BOT name
+BOT_NAME="Github Sync Bot v1.0"
 
 # main function ˘Ô≈ôﺣ
 function main() {
-  # with test we also show config details
-  if (("$TEST" == 1)); then
-    showConfValues
-  fi
+  # always show the config values
+  showConfValues
   # check that all needed values are set
-  checkConfValues
   # clone all needed repos
-  cloneRepos
-  # move the files and folders
-  moveFoldersFiles
-  # check what action to take to get
-  # the changes into the target repository
-  if (("$TARGET_REPO_ACTION" == 1)); then
-    # we must merge directly to target
-    makeMergeToTarget
-  else
-    # we should create a pull request
-    makePullRequestAgainstTarget
+  if checkConfValues && cloneRepos; then
+    # move the files and folders
+    moveFoldersFiles
+    # crazy but lets check anyway
+    if [ -d "${ROOT_TARGET_FOLDER}" ]; then
+      # move to root target folder
+      cd "${ROOT_TARGET_FOLDER}"
+      # merge all changes
+      if mergeChanges; then
+        # check what action to take to get
+        # the changes into the target repository
+        if (("$TARGET_REPO_ACTION" == 1)); then
+          # we must merge directly to target
+          makeMergeToTarget
+        else
+          # we should create a pull request
+          makePullRequestAgainstTarget
+        fi
+        # check if all went well
+        if [ $? -eq 0 ]; then
+          # give the final success message
+          finalMessage "========= Successfully synced ========================" ">=>"
+        fi
+      else
+        # show that there was noting to do...
+        finalMessage "========= Tried to sync (but nothing changed) ========" "==="
+      fi
+    fi
   fi
-}
-
-# merge the changes into the target repository
-function makeMergeToTarget() {
-  # go into repo folder
-  cd "${ROOT_TARGET_FOLDER}"
-  # make a commit of the changes
-  echo "merge:$PWD"
-}
-
-# create a pull request against the target repository
-function makePullRequestAgainstTarget() {
-  # go into repo folder
-  cd "${ROOT_TARGET_FOLDER}"
-  # make a commit of the changes
-  echo "PR:$PWD"
+  echo "There was a serious error."
+  exit 22
 }
 
 # show the configuration values
-function checkConfValues () {
+function checkConfValues() {
   # check if we have found errors
   local ERROR=0
 
   # make sure SOURCE_REPO is set
   [[ ! "${SOURCE_REPO}" == *"/"* ]] && echo "SOURCE_REPO:${SOURCE_REPO} is not a repo path!" && ERROR=1
-  [[ ! `wget -S --spider "https://github.com/${SOURCE_REPO}"  2>&1 | grep 'HTTP/1.1 200 OK'` ]] \
-    && echo "SOURCE_REPO:https://github.com/${SOURCE_REPO} is not set correctly, or the guthub user does not have access!" \
-    && ERROR=1
+  [[ ! $(wget -S --spider "https://github.com/${SOURCE_REPO}" 2>&1 | grep 'HTTP/1.1 200 OK') ]] &&
+    echo "SOURCE_REPO:https://github.com/${SOURCE_REPO} is not set correctly, or the guthub user does not have access!" &&
+    ERROR=1
 
   # make sure SOURCE_REPO_BRANCH is set
   [ ${#SOURCE_REPO_BRANCH} -le 1 ] && echo "SOURCE_REPO_BRANCH:${SOURCE_REPO_BRANCH} is not set correctly!" && ERROR=1
@@ -76,9 +76,9 @@ function checkConfValues () {
 
   # make sure TARGET_REPO is set
   [[ ! "${TARGET_REPO}" == *"/"* ]] && echo "TARGET_REPO:${TARGET_REPO} is not a repo path!" && ERROR=1
-  [[ ! `wget -S --spider "https://github.com/${TARGET_REPO}"  2>&1 | grep 'HTTP/1.1 200 OK'` ]] \
-    && echo "TARGET_REPO:https://github.com/${TARGET_REPO} is not set correctly, or the guthub user does not have access!" \
-    && ERROR=1
+  [[ ! $(wget -S --spider "https://github.com/${TARGET_REPO}" 2>&1 | grep 'HTTP/1.1 200 OK') ]] &&
+    echo "TARGET_REPO:https://github.com/${TARGET_REPO} is not set correctly, or the guthub user does not have access!" &&
+    ERROR=1
 
   # make sure TARGET_REPO_BRANCH is set
   [ ${#TARGET_REPO_BRANCH} -le 1 ] && echo "TARGET_REPO_BRANCH:${TARGET_REPO_BRANCH} is not set correctly!" && ERROR=1
@@ -92,17 +92,19 @@ function checkConfValues () {
   # make sure TARGET_REPO_FORK is set correctly if set
   if [ ${#TARGET_REPO_FORK} -ge 1 ]; then
     [[ ! "${TARGET_REPO_FORK}" == *"/"* ]] && echo "TARGET_REPO_FORK:${TARGET_REPO_FORK} is not a repo path!" && ERROR=1
-    [[ ! `wget -S --spider "https://github.com/${TARGET_REPO_FORK}"  2>&1 | grep 'HTTP/1.1 200 OK'` ]] \
-      && echo "TARGET_REPO_FORK:https://github.com/${TARGET_REPO_FORK} is not set correctly, or the guthub user does not have access!" \
-      && ERROR=1
+    [[ ! $(wget -S --spider "https://github.com/${TARGET_REPO_FORK}" 2>&1 | grep 'HTTP/1.1 200 OK') ]] &&
+      echo "TARGET_REPO_FORK:https://github.com/${TARGET_REPO_FORK} is not set correctly, or the guthub user does not have access!" &&
+      ERROR=1
   fi
 
   # if error found exit
   (("$ERROR" == 1)) && exit 19
+
+  return 0
 }
 
 # clone the repo
-function cloneRepos () {
+function cloneRepos() {
   # clone the source repo (we don't need access on this one)
   [[ "${SOURCE_REPO}" == *"/"* ]] && cloneRepo "https://github.com/${SOURCE_REPO}.git" "${SOURCE_REPO_BRANCH}" "${ROOT_SOURCE_FOLDER}"
   # clone the forked target repo if set
@@ -110,7 +112,7 @@ function cloneRepos () {
     # we need access on this one, so we use git@github.com:
     cloneRepo "git@github.com:${TARGET_REPO_FORK}.git" "${TARGET_REPO_BRANCH}" "${ROOT_TARGET_FOLDER}"
     # only rebase if fresh clone
-    if [ $? -eq 0 ];then
+    if [ $? -eq 0 ]; then
       # rebase with upstream (we don't need access on this one)
       rebaseWithUpstream "https://github.com/${TARGET_REPO}.git" "${TARGET_REPO_BRANCH}" "${ROOT_TARGET_FOLDER}"
     fi
@@ -119,13 +121,15 @@ function cloneRepos () {
     # we need access on this one, so we use git@github.com:
     cloneRepo "${TARGET_REPO}" "git@github.com:${TARGET_REPO_BRANCH}.git" "${ROOT_TARGET_FOLDER}"
   else
-    echo "You must set TARGET_REPO:${TARGET_REPO} to target.repo.merge=1 if no target.repo.fork is given!"
+    echo "You use a forked target (target.repo.fork=org/forked_repo) or set the (target.repo.merge=1) to merge directly into target."
     exit 20
   fi
+
+  return 0
 }
 
 # clone the repo
-function cloneRepo () {
+function cloneRepo() {
   # set local values
   local git_repo="$1"
   local git_branch="$2"
@@ -140,18 +144,19 @@ function cloneRepo () {
     [ -d "${git_folder}" ] && rm -fr "${git_folder}"
     # clone the repo (but only a single branch)
     git clone -b "$git_branch" --single-branch "$git_repo" "$git_folder"
-    if [ $? -eq 0 ];then
+    if [ $? -eq 0 ]; then
       echo "${git_repo} was cloned successfully."
     else
       echo "${git_repo} failed to cloned successfully, check that the GitHub user has access to this repo!"
       exit 21
     fi
   fi
+
   return 0
 }
 
-# rebase repo with its upstream (old school)
-function rebaseWithUpstream () {
+# rebase repo with its upstream
+function rebaseWithUpstream() {
   # current folder
   local current_folder=$PWD
   # set local values
@@ -165,7 +170,7 @@ function rebaseWithUpstream () {
   # check out the upstream repository
   git checkout -b "${git_upstream}" "$git_branch"
   git pull ${git_repo_upstream} "$git_branch"
-  if [ $? -eq 0 ];then
+  if [ $? -eq 0 ]; then
     echo "upstream:${git_repo_upstream} was pulled successfully."
   else
     echo "Failed to pull upstream:${git_repo_upstream} successfully, check that the GitHub user has access to this repo!"
@@ -175,7 +180,7 @@ function rebaseWithUpstream () {
   git checkout "$git_branch"
   # rebase to upstream
   git rebase "${git_upstream}"
-  if [ $? -eq 0 ];then
+  if [ $? -eq 0 ]; then
     echo "upstream:${git_repo_upstream} was rebased into the forked repo successfully."
   else
     echo "Failed to rebase upstream:${git_repo_upstream} successfully!"
@@ -187,7 +192,7 @@ function rebaseWithUpstream () {
   else
     # force update the forked repo
     git push origin "$git_branch" --force
-    if [ $? -eq 0 ];then
+    if [ $? -eq 0 ]; then
       echo "The forked repo of upstream:${git_repo_upstream} successfully updated."
     else
       echo "Failed to update the forked repo, check that the GitHub user has access to this repo!"
@@ -199,7 +204,7 @@ function rebaseWithUpstream () {
 }
 
 # move the source folders and files to the target folders
-function moveFoldersFiles () {
+function moveFoldersFiles() {
   # with test we show in what folder
   # we are in when we start moving stuff
   if (("$TEST" == 1)); then
@@ -252,7 +257,7 @@ function moveFoldersFiles () {
 }
 
 # move the source folder's files to the target folders
-function moveFolderFiles () {
+function moveFolderFiles() {
   local source_folder="$1"
   local target_folder="$2"
   local source_files="${3:=0}"
@@ -297,7 +302,7 @@ function moveFolderFiles () {
       # 2 = only all sub-folders and their files
       elif (("$source_files" == 2)); then
         echo "This command:2 means to copy only all sub-folders and their files."
-        echo 'Yet this file command:${source_files} for ${ROOT_SOURCE_FOLDER}/${source_folder} is not ready to be used... so nothing was copied!';
+        echo 'Yet this file command:${source_files} for ${ROOT_SOURCE_FOLDER}/${source_folder} is not ready to be used... so nothing was copied!'
       # could be a file (name as number) so we try to copy it
       else
         # copy file/folder recursive by force
@@ -345,7 +350,7 @@ function moveFolderFiles () {
 }
 
 # move the source folder and all content to the target folder
-function moveFolder () {
+function moveFolder() {
   local source_folder="$1"
   local target_folder="$2"
   # prep folders to have no trailing or leading forward slashes
@@ -374,6 +379,88 @@ function moveFolder () {
   fi
 }
 
+# merge changes
+function mergeChanges() {
+  # we first check if there are changes
+  if [[ -z $(git status --porcelain) ]]; then
+    echo "There has been no changes to the target repository, so noting to commit."
+    return 1
+  else
+    # make a commit of the changes
+    git add .
+    git commit -am"$BOT_NAME [merge:${STARTDATE}]"
+    if [ $? -eq 0 ]; then
+      echo "Changes were committed."
+      return 0
+    else
+      echo "Failed to commit changed"
+      retunr 1
+    fi
+  fi
+}
+
+# merge the changes into the target repository
+function makeMergeToTarget() {
+  # we dont make changes to remote repos while testing
+  if (("$TEST" == 1)); then
+    echo "changes where not merged (test mode)"
+    return 0
+  fi
+  # push the changes
+  git push
+  # check if this is a fork (since then we are not done)
+  if [[ "${TARGET_REPO_FORK}" == *"/"* ]]; then
+    # in a fork we must create a pull request against the target repo, and then merge it.
+    createPullRequest && return 0
+  fi
+  return 0
+}
+
+# create a pull request against the target repository
+function makePullRequestAgainstTarget() {
+  # we dont make changes to remote repos while testing
+  if (("$TEST" == 1)); then
+    echo "pull request was not made (test mode)"
+    return 0
+  fi
+  # check if this is a fork (should always be)
+  if [[ "${TARGET_REPO_FORK}" == *"/"* ]]; then
+    # we need to push the changes up
+    git push
+    # creat the pull request
+    createPullRequest && return 0
+  fi
+  return 1
+}
+
+# create the pull request
+function createPullRequest() {
+  echo "we need github CLI to do this"
+  return 0
+}
+
+# give the final
+function finalMessage() {
+  # set the build time
+  ENDBUILD=$(date +"%s")
+  SECONDSBUILD=$((ENDBUILD - STARTBUILD))
+  # use UTC+00:00 time also called zulu
+  ENDDATE=$(TZ=":ZULU" date +"%m/%d/%Y @ %R (UTC)")
+  echo "======================================================"
+  echo "$1"
+  echo
+  echo "  (selected folders/files)"
+  echo "  source:${SOURCE_REPO}"
+  echo "   $2"
+  echo "  target:${TARGET_REPO}"
+  echo
+  echo "====> date:${STARTDATE}"
+  echo "====> duration:${SECONDSBUILD} seconds"
+  echo "======================================================"
+  echo
+  exit 0
+}
+
 # set any/all configuration values
 function setConfValues() {
   if [ -f $CONFIG_FILE ]; then
@@ -386,9 +473,9 @@ function setConfValues() {
     TARGET_REPO=$(getConfVal "target\.repo\.path" "${TARGET_REPO}")
     TARGET_REPO_BRANCH=$(getConfVal "target\.repo\.branch" "${TARGET_REPO_BRANCH}")
     TARGET_REPO_FOLDERS=$(getConfVal "target\.repo\.folders" "${TARGET_REPO_FOLDERS}")
-     # To merge or just make a PR (0 = PR; 1 = Merge)
+    # To merge or just make a PR (0 = PR; 1 = Merge)
     TARGET_REPO_ACTION=$(getConfVal "target\.repo\.merge" "${TARGET_REPO_ACTION}")
-     # Target fork is rebased (if out of sync with upstream target) then updated and used to make a PR or Merge
+    # Target fork is rebased to upstream target then updated and used to make a PR or Merge
     TARGET_REPO_FORK=$(getConfVal "target\.repo\.fork" "${TARGET_REPO_FORK}")
   fi
 }
@@ -401,9 +488,9 @@ function getConfVal() {
 }
 
 # show the configuration values
-function showConfValues () {
+function showConfValues() {
   echo "======================================================"
-  echo "		${HEADERTITLE}"
+  echo "		${BOT_NAME}"
   echo "======================================================"
   echo "CONFIG_FILE:          ${CONFIG_FILE}"
   echo "TEST:                 ${TEST}"
@@ -457,7 +544,7 @@ Usage: ${0##*/:-} [OPTION...]
 	example: ${0##*/:-} -h
 	example: ${0##*/:-} --help
 	======================================================
-			${HEADERTITLE}
+			${BOT_NAME}
 	======================================================
 EOF
 }
@@ -481,7 +568,7 @@ TARGET_REPO=""
 TARGET_REPO_BRANCH=""
 TARGET_REPO_FOLDERS=""
 TARGET_REPO_ACTION=0 # To merge or just make a PR (0 = PR; 1 = Merge)
-TARGET_REPO_FORK="" # Target fork is rebased then updated and used to make a PR or Merge
+TARGET_REPO_FORK=""  # Target fork is rebased then updated and used to make a PR or Merge
 
 # check if we have options
 while :; do
