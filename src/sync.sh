@@ -23,11 +23,18 @@ function main() {
   # the changes into the target repository
   if (("$TARGET_REPO_ACTION" == 1)); then
     # we must merge directly to target
-    echo "we merge directly into target... soon"
+    makeMergeToTarget
   else
     # we should create a pull request
-    echo "we create a pull request via the github CLI... soon"
+    makePullRequestAgainstTarget
   fi
+}
+
+# merge the changes into the target repository
+function makeMergeToTarget() {
+  # go into repo folder
+  cd target_repo
+  # make a commit of the changes
 }
 
 # show the configuration values
@@ -37,7 +44,7 @@ function checkConfValues () {
 
   # make sure SOURCE_REPO is set
   [[ ! "${SOURCE_REPO}" == *"/"* ]] && echo "SOURCE_REPO:${SOURCE_REPO} is not a repo path!" && ERROR=1
-  ! wget --spider "https://github.com/${SOURCE_REPO}" 2>/dev/null && \
+  [[ ! `wget -S --spider "https://github.com/${SOURCE_REPO}"  2>&1 | grep 'HTTP/1.1 200 OK'` ]] && \
     echo "SOURCE_REPO:https://github.com/${SOURCE_REPO} is not set correctly, or the guthub user does not have access!" && \
     ERROR=1
 
@@ -49,8 +56,8 @@ function checkConfValues () {
 
   # make sure TARGET_REPO is set
   [[ ! "${TARGET_REPO}" == *"/"* ]] && echo "TARGET_REPO:${TARGET_REPO} is not a repo path!" && ERROR=1
-  ! wget --spider "https://github.com/${TARGET_REPO}" 2>/dev/null \
-    && echo "TARGET_REPO:https://github.com/${TARGET_REPO} is not set correctly, or the guthub user does not have access!" \
+  [[ ! `wget -S --spider "https://github.com/${TARGET_REPO}"  2>&1 | grep 'HTTP/1.1 200 OK'` ]] && \
+    echo "TARGET_REPO:https://github.com/${TARGET_REPO} is not set correctly, or the guthub user does not have access!" \
     && ERROR=1
 
   # make sure TARGET_REPO_BRANCH is set
@@ -446,7 +453,7 @@ while :; do
   --test) # set the test behaviour
     TEST=1
     ;;
-  --conf) # Takes an option argument; ensure it has been specified.
+  --conf | --config) # Takes an option argument; ensure it has been specified.
     if [ "$2" ]; then
       CONFIG_FILE=$2
       shift
@@ -455,10 +462,10 @@ while :; do
       exit 1
     fi
     ;;
-  --conf=?*)
+  --conf=?* | --config=?*)
     CONFIG_FILE=${1#*=} # Delete everything up to "=" and assign the remainder.
     ;;
-  --conf=) # Handle the case of an empty --conf=
+  --conf= | --config) # Handle the case of an empty --conf=
     echo 'ERROR: "--conf" requires a non-empty option argument.'
     exit 1
     ;;
