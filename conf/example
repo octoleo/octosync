@@ -59,7 +59,7 @@ target.repo.folders=folder/path_a;folder/path_b
 # To merge or just make a PR (0 = PR; 1 = Merge)
 target.repo.merge=1
 
-# Target fork is rebased (HARD RESET TO UPSTREAM TARGET)
+# Target fork is rebased to upstream target (target[dot]repo[dot]path)
 # Then updated and used to make a PR or Merge
 target.repo.fork=org2/repo2
 
