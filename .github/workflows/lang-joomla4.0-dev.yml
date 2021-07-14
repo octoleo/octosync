@@ -45,4 +45,4 @@ jobs:
             /bin/git clone -b master --single-branch git@github.com:vdm-io/github-sync-bot.git bot
       - name: Sync The Repo Files
         run: |
-          /bin/bash ./bot/src/sync.sh --conf=bot/conf/lang-joomla4.0-dev
+          /bin/bash ./bot/src/sync.sh --conf=bot/conf/lang-joomla4.0-dev --dry
