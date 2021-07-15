@@ -14,7 +14,7 @@ jobs:
       # We use this approach to sign all commits
       # Also to use basic git commands in the sync script
       # with no further authentication needed
-      # see: https://github.com/vdm-io/github-user
+      # see: https://github.com/octoleo/github-user
       - name: Setup gitHub User Details
         # how to set secrets?
         # see: https://docs.github.com/en/actions/reference/encrypted-secrets
@@ -35,11 +35,11 @@ jobs:
           # A id_ed25519.pub ssh public key liked to the github user account
           SSH_PUB: ${{ secrets.SSH_PUB }}
         run: |
-          /bin/bash <(/bin/curl -s https://raw.githubusercontent.com/vdm-io/github-user/master/src/setup.sh) --gpg-key "$GPG_KEY" --gpg-user "$GPG_USER" --ssh-key "$SSH_KEY" --ssh-pub "$SSH_PUB" --git-user "$GIT_USER" --git-email "$GIT_EMAIL"
-      - name: Clone Bot Repo
-          # this is the repo that does the work
-          run: |
-            /bin/git clone -b master --single-branch git@github.com:vdm-io/github-sync-bot.git bot
+          /bin/bash <(/bin/curl -s https://raw.githubusercontent.com/octoleo/github-user/master/src/setup.sh) --gpg-key "$GPG_KEY" --gpg-user "$GPG_USER" --ssh-key "$SSH_KEY" --ssh-pub "$SSH_PUB" --git-user "$GIT_USER" --git-email "$GIT_EMAIL"
+      - name: Clone Octoleo Repo
+        # this is the repo that does the work
+        run: |
+          /bin/git clone -b master --single-branch git@github.com:octoleo/octoleo.git octoleo
       - name: Set Active
         run: |
           cd bot

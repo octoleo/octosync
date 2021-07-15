@@ -1,8 +1,17 @@
-## Github Sync Bot Setup
+# OCTOLEO
 
-- We use this script to setup a github user on the Ubuntu systems in the Github Actions Workflows. See setup instructions below.
-- Then the sync of each set of repositories are manage with a config file found in the conf folder.
-- So we have to setup multiple workflows for each set repositories (config) you would like to sync.
+The option to move files or whole folders from repository to another is what Octoleo does. You can with [configurations](https://github.com/octoleo/octoleo/blob/master/conf/example) setup multiple syncing relationships which you can run in multiple [workflow actions](https://github.com/octoleo/octoleo/blob/master/.github/workflows/test.yml).
+
+## Octoleo Sync Bot Setup
+
+- We use this script to setup a github user on the Ubuntu systems in the Github Actions Workflows. [See setup instructions below](https://github.com/octoleo/octoleo#how-to-setup-github-user).
+- Then the sync of each set of repositories are managed with a [config file](https://github.com/octoleo/octoleo/blob/master/conf/example) found in the [conf folder](https://github.com/octoleo/octoleo/blob/master/conf).
+- So we can then setup [multiple workflows](https://github.com/octoleo/octoleo/blob/master/.github/workflows) for each set repositories (config) you would like to sync.
+
+Examples:
+```yml
+
+```
 
 ### How To SETUP gitHub User
 

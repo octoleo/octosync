@@ -5,18 +5,17 @@ command -v git >/dev/null 2>&1 || {
   echo >&2 "We require git for this script to run, but it's not installed.  Aborting."
   exit 1
 }
-# command -v gh >/dev/null 2>&1 || {
-#  echo >&2 "We require github CLI for this script to run, but it's not installed.  Aborting."
-#  exit 1
-# }
-# will still add some github toke check (that it exist)
+command -v curl >/dev/null 2>&1 || {
+  echo >&2 "We require curl for this script to run, but it's not installed.  Aborting."
+  exit 1
+}
 
 # get start time
 STARTBUILD=$(date +"%s")
 # use UTC+00:00 time also called zulu
 STARTDATE=$(TZ=":ZULU" date +"%m/%d/%Y @ %R (UTC)")
 # BOT name
-BOT_NAME="Github Sync Bot v1.0"
+BOT_NAME="Octoleo v1.0"
 
 # main function ˘Ô≈ôﺣ
 function main() {
@@ -166,7 +165,7 @@ function rebaseWithUpstream() {
   # just a random remote name
   local git_upstream="stroomOp"
   # go into repo folder
-  cd ${git_folder}
+  cd ${git_folder} || exit 23
   # check out the upstream repository
   git checkout -b "${git_upstream}" "$git_branch"
   git pull ${git_repo_upstream} "$git_branch"
@@ -200,7 +199,8 @@ function rebaseWithUpstream() {
     fi
   fi
   # return to original folder
-  cd "${current_folder}"
+  cd "${current_folder}" || exit 24
+  return 0
 }
 
 # move the source folders and files to the target folders
@@ -605,6 +605,16 @@ while :; do
   shift
 done
 
+# check if the config is passed via a URL
+if [[ "${CONFIG_FILE}" =~ ^"http:" ]] || [[ "${CONFIG_FILE}" =~ ^"https:" ]]; then
+  if [[ $(wget -S --spider "${CONFIG_FILE}" 2>&1 | grep 'HTTP/1.1 200 OK') ]]; then
+    wget --quiet "${CONFIG_FILE}" -O config_file_from_url
+    CONFIG_FILE="config_file_from_url"
+  else
+    echo >&2 "The config:${CONFIG_FILE} is not a valid URL. Aborting."
+    exit 18
+  fi
+fi
 # We must have a config file
 [ ! -f "${CONFIG_FILE}" ] && echo >&2 "The config:${CONFIG_FILE} is not set or found. Aborting." && exit 18
 

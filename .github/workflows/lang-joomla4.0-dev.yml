@@ -15,7 +15,7 @@ jobs:
       # We use this approach to sign all commits
       # Also to use basic git commands in the sync script
       # with no further authentication needed
-      # see: https://github.com/vdm-io/github-user
+      # see: https://github.com/octoleo/github-user
       - name: Setup gitHub User Details
         # how to set secrets?
         # see: https://docs.github.com/en/actions/reference/encrypted-secrets
@@ -38,11 +38,11 @@ jobs:
           # A id_ed25519.pub ssh public key liked to the github user account
           SSH_PUB: ${{ secrets.SSH_PUB }}
         run: |
-          /bin/bash <(/bin/curl -s https://raw.githubusercontent.com/vdm-io/github-user/master/src/setup.sh) --gpg-key "$GPG_KEY" --gpg-user "$GPG_USER" --ssh-key "$SSH_KEY" --ssh-pub "$SSH_PUB" --git-user "$GIT_USER" --git-email "$GIT_EMAIL" --git-token "$GIT_TOKEN"
-      - name: Clone Sync Bot Repo
-          # this is the repo that does the work
-          run: |
-            /bin/git clone -b master --single-branch git@github.com:vdm-io/github-sync-bot.git bot
+          /bin/bash <(/bin/curl -s https://raw.githubusercontent.com/octoleo/github-user/master/src/setup.sh) --gpg-key "$GPG_KEY" --gpg-user "$GPG_USER" --ssh-key "$SSH_KEY" --ssh-pub "$SSH_PUB" --git-user "$GIT_USER" --git-email "$GIT_EMAIL" --git-token "$GIT_TOKEN"
       - name: Sync The Repo Files
+        # you can pass your config by url
+        # this means you can get your config file from anywhere
+        # we have --dry added here since we are still in development stage once in production we will remove --dry
         run: |
-          /bin/bash ./bot/src/sync.sh --conf=bot/conf/lang-joomla4.0-dev --dry
+          /bin/bash <(/bin/curl -s https://raw.githubusercontent.com/octoleo/octoleo/master/src/sync.sh) --conf=https://raw.githubusercontent.com/octoleo/octoleo/master/conf/lang-joomla4.0-dev --dry
+
