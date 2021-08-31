@@ -11,11 +11,11 @@ command -v curl >/dev/null 2>&1 || {
 }
 
 # get start time
-STARTBUILD=$(date +"%s")
+START_BUILD=$(date +"%s")
 # use UTC+00:00 time also called zulu
-STARTDATE=$(TZ=":ZULU" date +"%m/%d/%Y @ %R (UTC)")
+START_DATE=$(TZ=":ZULU" date +"%m/%d/%Y @ %R (UTC)")
 # BOT name
-BOT_NAME="Octoleo v1.0"
+BOT_NAME="Octosync v1.0"
 
 # main function ˘Ô≈ôﺣ
 function main() {
@@ -29,7 +29,7 @@ function main() {
     # crazy but lets check anyway
     if [ -d "${ROOT_TARGET_FOLDER}" ]; then
       # move to root target folder
-      cd "${ROOT_TARGET_FOLDER}"
+      cd "${ROOT_TARGET_FOLDER}" || exit 24
       # merge all changes
       if mergeChanges; then
         # check what action to take to get
@@ -62,37 +62,37 @@ function checkConfValues() {
   local ERROR=0
 
   # make sure SOURCE_REPO is set
-  [[ ! "${SOURCE_REPO}" == *"/"* ]] && echo "SOURCE_REPO:${SOURCE_REPO} is not a repo path!" && ERROR=1
+  [[ ! "${SOURCE_REPO}" == *"/"* ]] && _echo "SOURCE_REPO:${SOURCE_REPO} is not a repo path!" && ERROR=1
   [[ ! $(wget -S --spider "https://github.com/${SOURCE_REPO}" 2>&1 | grep 'HTTP/1.1 200 OK') ]] &&
-    echo "SOURCE_REPO:https://github.com/${SOURCE_REPO} is not set correctly, or the guthub user does not have access!" &&
+    _echo "SOURCE_REPO:https://github.com/${SOURCE_REPO} is not set correctly, or the github user does not have access!" &&
     ERROR=1
 
   # make sure SOURCE_REPO_BRANCH is set
-  [ ${#SOURCE_REPO_BRANCH} -le 1 ] && echo "SOURCE_REPO_BRANCH:${SOURCE_REPO_BRANCH} is not set correctly!" && ERROR=1
+  [ ${#SOURCE_REPO_BRANCH} -le 1 ] && _echo "SOURCE_REPO_BRANCH:${SOURCE_REPO_BRANCH} is not set correctly!" && ERROR=1
 
   # make sure SOURCE_REPO_FOLDERS is set
-  [ ${#SOURCE_REPO_FOLDERS} -le 1 ] && echo "SOURCE_REPO_FOLDERS:${SOURCE_REPO_FOLDERS} is not set correctly!" && ERROR=1
+  [ ${#SOURCE_REPO_FOLDERS} -le 1 ] && _echo "SOURCE_REPO_FOLDERS:${SOURCE_REPO_FOLDERS} is not set correctly!" && ERROR=1
 
   # make sure TARGET_REPO is set
-  [[ ! "${TARGET_REPO}" == *"/"* ]] && echo "TARGET_REPO:${TARGET_REPO} is not a repo path!" && ERROR=1
+  [[ ! "${TARGET_REPO}" == *"/"* ]] && _echo "TARGET_REPO:${TARGET_REPO} is not a repo path!" && ERROR=1
   [[ ! $(wget -S --spider "https://github.com/${TARGET_REPO}" 2>&1 | grep 'HTTP/1.1 200 OK') ]] &&
-    echo "TARGET_REPO:https://github.com/${TARGET_REPO} is not set correctly, or the guthub user does not have access!" &&
+    _echo "TARGET_REPO:https://github.com/${TARGET_REPO} is not set correctly, or the github user does not have access!" &&
     ERROR=1
 
   # make sure TARGET_REPO_BRANCH is set
-  [ ${#TARGET_REPO_BRANCH} -le 1 ] && echo "TARGET_REPO_BRANCH:${TARGET_REPO_BRANCH} is not set correctly!" && ERROR=1
+  [ ${#TARGET_REPO_BRANCH} -le 1 ] && _echo "TARGET_REPO_BRANCH:${TARGET_REPO_BRANCH} is not set correctly!" && ERROR=1
 
   # make sure TARGET_REPO_FOLDERS is set
-  [ ${#TARGET_REPO_FOLDERS} -le 1 ] && echo "TARGET_REPO_FOLDERS:${TARGET_REPO_FOLDERS} is not set correctly!" && ERROR=1
+  [ ${#TARGET_REPO_FOLDERS} -le 1 ] && _echo "TARGET_REPO_FOLDERS:${TARGET_REPO_FOLDERS} is not set correctly!" && ERROR=1
 
   # check that the correct action is set
-  ! (("$TARGET_REPO_ACTION" == 1)) && ! (("$TARGET_REPO_ACTION" == 0)) && echo "TARGET_REPO_ACTION:${TARGET_REPO_ACTION} is not set correctly!" && ERROR=1
+  ! (("$TARGET_REPO_ACTION" == 1)) && ! (("$TARGET_REPO_ACTION" == 0)) && _echo "TARGET_REPO_ACTION:${TARGET_REPO_ACTION} is not set correctly!" && ERROR=1
 
   # make sure TARGET_REPO_FORK is set correctly if set
   if [ ${#TARGET_REPO_FORK} -ge 1 ]; then
-    [[ ! "${TARGET_REPO_FORK}" == *"/"* ]] && echo "TARGET_REPO_FORK:${TARGET_REPO_FORK} is not a repo path!" && ERROR=1
+    [[ ! "${TARGET_REPO_FORK}" == *"/"* ]] && _echo "TARGET_REPO_FORK:${TARGET_REPO_FORK} is not a repo path!" && ERROR=1
     [[ ! $(wget -S --spider "https://github.com/${TARGET_REPO_FORK}" 2>&1 | grep 'HTTP/1.1 200 OK') ]] &&
-      echo "TARGET_REPO_FORK:https://github.com/${TARGET_REPO_FORK} is not set correctly, or the guthub user does not have access!" &&
+      _echo "TARGET_REPO_FORK:https://github.com/${TARGET_REPO_FORK} is not set correctly, or the github user does not have access!" &&
       ERROR=1
   fi
 
@@ -120,7 +120,7 @@ function cloneRepos() {
     # we need access on this one, so we use git@github.com:
     cloneRepo "${TARGET_REPO}" "git@github.com:${TARGET_REPO_BRANCH}.git" "${ROOT_TARGET_FOLDER}"
   else
-    echo "You use a forked target (target.repo.fork=org/forked_repo) or set the (target.repo.merge=1) to merge directly into target."
+    _echo "You use a forked target (target.repo.fork=org/forked_repo) or set the (target.repo.merge=1) to merge directly into target."
     exit 20
   fi
 
@@ -136,7 +136,7 @@ function cloneRepo() {
   # with test we don't clone again
   # if folder already exist (if you dont want this behaviour manually remove the folders)
   if (("$TEST" == 1)) && [ -d "${git_folder}" ]; then
-    echo "folder:${git_folder} already exist, repo:${git_repo} was not cloned again. (test mode)"
+    _echo "folder:${git_folder} already exist, repo:${git_repo} was not cloned again. (test mode)"
     return 1
   else
     # make sure the folder does not exist
@@ -144,9 +144,9 @@ function cloneRepo() {
     # clone the repo (but only a single branch)
     git clone -b "$git_branch" --single-branch "$git_repo" "$git_folder"
     if [ $? -eq 0 ]; then
-      echo "${git_repo} was cloned successfully."
+      _echo "${git_repo} was cloned successfully."
     else
-      echo "${git_repo} failed to cloned successfully, check that the GitHub user has access to this repo!"
+      _echo "${git_repo} failed to cloned successfully, check that the GitHub user has access to this repo!"
       exit 21
     fi
   fi
@@ -165,14 +165,14 @@ function rebaseWithUpstream() {
   # just a random remote name
   local git_upstream="stroomOp"
   # go into repo folder
-  cd ${git_folder} || exit 23
+  cd "${git_folder}" || exit 23
   # check out the upstream repository
   git checkout -b "${git_upstream}" "$git_branch"
-  git pull ${git_repo_upstream} "$git_branch"
+  git pull "${git_repo_upstream}" "$git_branch"
   if [ $? -eq 0 ]; then
-    echo "upstream:${git_repo_upstream} was pulled successfully."
+    _echo "upstream:${git_repo_upstream} was pulled successfully."
   else
-    echo "Failed to pull upstream:${git_repo_upstream} successfully, check that the GitHub user has access to this repo!"
+    _echo "Failed to pull upstream:${git_repo_upstream} successfully, check that the GitHub user has access to this repo!"
     exit 10
   fi
   # make sure we are on the targeted branch
@@ -180,21 +180,21 @@ function rebaseWithUpstream() {
   # rebase to upstream
   git rebase "${git_upstream}"
   if [ $? -eq 0 ]; then
-    echo "upstream:${git_repo_upstream} was rebased into the forked repo successfully."
+    _echo "upstream:${git_repo_upstream} was rebased into the forked repo successfully."
   else
-    echo "Failed to rebase upstream:${git_repo_upstream} successfully!"
+    _echo "Failed to rebase upstream:${git_repo_upstream} successfully!"
     exit 12
   fi
   # make sure this is not a test
   if (("$TEST" == 1)); then
-    echo "The forked repo of upstream:${git_repo_upstream} not updated, as this is a test."
+    _echo "The forked repo of upstream:${git_repo_upstream} not updated, as this is a test."
   else
     # force update the forked repo
     git push origin "$git_branch" --force
     if [ $? -eq 0 ]; then
-      echo "The forked repo of upstream:${git_repo_upstream} successfully updated."
+      _echo "The forked repo of upstream:${git_repo_upstream} successfully updated."
     else
-      echo "Failed to update the forked repo, check that the GitHub user has access to this repo!"
+      _echo "Failed to update the forked repo, check that the GitHub user has access to this repo!"
       exit 13
     fi
   fi
@@ -208,7 +208,7 @@ function moveFoldersFiles() {
   # with test we show in what folder
   # we are in when we start moving stuff
   if (("$TEST" == 1)); then
-    echo "Location: [$PWD]"
+    _echo "Location: [$PWD]"
   fi
   # check if we have an array of folders
   if [[ "${SOURCE_REPO_FOLDERS}" == *";"* ]] && [[ "${TARGET_REPO_FOLDERS}" == *";"* ]]; then
@@ -230,7 +230,7 @@ function moveFoldersFiles() {
           if [ ${source_files[key]+abc} ]; then
             moveFolderFiles "${source_folders[key]}" "${target_folders[key]}" "${source_files[key]}"
           else
-            echo "Source folder:${source_folders[key]} file mismatched!"
+            _echo "Source folder:${source_folders[key]} file mismatched!"
             exit 14
           fi
         # just move all the content of the folder
@@ -238,7 +238,7 @@ function moveFoldersFiles() {
           moveFolder "${source_folders[key]}" "${target_folders[key]}"
         fi
       else
-        echo "Source folder:${source_folders[key]} mismatched!"
+        _echo "Source folder:${source_folders[key]} mismatched!"
         exit 15
       fi
     done
@@ -251,7 +251,7 @@ function moveFoldersFiles() {
       moveFolder "${SOURCE_REPO_FOLDERS}" "${TARGET_REPO_FOLDERS}"
     fi
   else
-    echo "Source folder:${SOURCE_REPO_FOLDERS} -> Target folder:${TARGET_REPO_FOLDERS} mismatched!"
+    _echo "Source folder:${SOURCE_REPO_FOLDERS} -> Target folder:${TARGET_REPO_FOLDERS} mismatched!"
     exit 16
   fi
 }
@@ -268,8 +268,8 @@ function moveFolderFiles() {
   target_folder="${target_folder#/}"
   # make sure the source folder exist
   if [ ! -d "${ROOT_SOURCE_FOLDER}/${source_folder}" ]; then
-    echo "failed to copy [${ROOT_SOURCE_FOLDER}/${source_folder} -> ${ROOT_TARGET_FOLDER}/${target_folder}] since source folder does not exist. (failure)"
-    echo "current_folder:${PWD}"
+    _echo "failed to copy [${ROOT_SOURCE_FOLDER}/${source_folder} -> ${ROOT_TARGET_FOLDER}/${target_folder}] since source folder does not exist. (failure)"
+    _echo "current_folder:${PWD}"
   else
     # make sure the target folder exist
     if [ ! -f "${ROOT_TARGET_FOLDER}/${target_folder}" ]; then
@@ -284,34 +284,34 @@ function moveFolderFiles() {
         # copy both files and sub-folders recursive by force
         cp -fr "${ROOT_SOURCE_FOLDER}/${source_folder}/"* "${ROOT_TARGET_FOLDER}/${target_folder}"
         if [ $? -eq 0 ]; then
-          echo "copied [${ROOT_SOURCE_FOLDER}/${source_folder}/* -> ${ROOT_TARGET_FOLDER}/${target_folder}] (success)"
+          _echo "copied [${ROOT_SOURCE_FOLDER}/${source_folder}/* -> ${ROOT_TARGET_FOLDER}/${target_folder}] (success)"
         else
-          echo "failed to copy [${ROOT_SOURCE_FOLDER}/${source_folder}/* -> ${ROOT_TARGET_FOLDER}/${target_folder}] (failure [0])"
-          echo "current_folder:${PWD}"
+          _echo "failed to copy [${ROOT_SOURCE_FOLDER}/${source_folder}/* -> ${ROOT_TARGET_FOLDER}/${target_folder}] (failure [0])"
+          _echo "current_folder:${PWD}"
         fi
       # 1 = only all files (no sub-folders)
       elif (("$source_files" == 1)); then
         # copy only the file by force
         cp -f "${ROOT_SOURCE_FOLDER}/${source_folder}/"* "${ROOT_TARGET_FOLDER}/${target_folder}"
         if [ $? -eq 0 ]; then
-          echo "copied [${ROOT_SOURCE_FOLDER}/${source_folder}/* -> ${ROOT_TARGET_FOLDER}/${target_folder}] (success)"
+          _echo "copied [${ROOT_SOURCE_FOLDER}/${source_folder}/* -> ${ROOT_TARGET_FOLDER}/${target_folder}] (success)"
         else
-          echo "failed to copy [${ROOT_SOURCE_FOLDER}/${source_folder}/* -> ${ROOT_TARGET_FOLDER}/${target_folder}] (failure [1])"
-          echo "current_folder:${PWD}"
+          _echo "failed to copy [${ROOT_SOURCE_FOLDER}/${source_folder}/* -> ${ROOT_TARGET_FOLDER}/${target_folder}] (failure [1])"
+          _echo "current_folder:${PWD}"
         fi
       # 2 = only all sub-folders and their files
       elif (("$source_files" == 2)); then
-        echo "This command:2 means to copy only all sub-folders and their files."
-        echo 'Yet this file command:${source_files} for ${ROOT_SOURCE_FOLDER}/${source_folder} is not ready to be used... so nothing was copied!'
+        _echo "This command:2 means to copy only all sub-folders and their files."
+        _echo "Yet this file command:${source_files} for ${ROOT_SOURCE_FOLDER}/${source_folder} is not ready to be used... so nothing was copied!"
       # could be a file (name as number) so we try to copy it
       else
         # copy file/folder recursive by force
         cp -fr "${ROOT_SOURCE_FOLDER}/${source_folder}/${source_files}" "${ROOT_TARGET_FOLDER}/${target_folder}"
         if [ $? -eq 0 ]; then
-          echo "copied [${ROOT_SOURCE_FOLDER}/${source_folder}/${source_files} -> ${ROOT_TARGET_FOLDER}/${target_folder}] (success)"
+          _echo "copied [${ROOT_SOURCE_FOLDER}/${source_folder}/${source_files} -> ${ROOT_TARGET_FOLDER}/${target_folder}] (success)"
         else
-          echo "failed to copy [${ROOT_SOURCE_FOLDER}/${source_folder}/${source_files} -> ${ROOT_TARGET_FOLDER}/${target_folder}] (failure [.])"
-          echo "current_folder:${PWD}"
+          _echo "failed to copy [${ROOT_SOURCE_FOLDER}/${source_folder}/${source_files} -> ${ROOT_TARGET_FOLDER}/${target_folder}] (failure [.])"
+          _echo "current_folder:${PWD}"
         fi
       fi
     else
@@ -326,10 +326,10 @@ function moveFolderFiles() {
           # copy file/folder recursive by force
           cp -fr "${ROOT_SOURCE_FOLDER}/${source_folder}/${file}" "${ROOT_TARGET_FOLDER}/${target_folder}"
           if [ $? -eq 0 ]; then
-            echo "copied [${ROOT_SOURCE_FOLDER}/${source_folder}/${file} -> ${ROOT_TARGET_FOLDER}/${target_folder}] (success)"
+            _echo "copied [${ROOT_SOURCE_FOLDER}/${source_folder}/${file} -> ${ROOT_TARGET_FOLDER}/${target_folder}] (success)"
           else
-            echo "failed to copy [${ROOT_SOURCE_FOLDER}/${source_folder}/${file} -> ${ROOT_TARGET_FOLDER}/${target_folder}] (failure [..])"
-            echo "current_folder:${PWD}"
+            _echo "failed to copy [${ROOT_SOURCE_FOLDER}/${source_folder}/${file} -> ${ROOT_TARGET_FOLDER}/${target_folder}] (failure [..])"
+            _echo "current_folder:${PWD}"
           fi
         done
       else
@@ -339,10 +339,10 @@ function moveFolderFiles() {
         # copy file/folder recursive by force
         cp -fr "${ROOT_SOURCE_FOLDER}/${source_folder}/${source_files}" "${ROOT_TARGET_FOLDER}/${target_folder}"
         if [ $? -eq 0 ]; then
-          echo "copied [${ROOT_SOURCE_FOLDER}/${source_folder}/${source_files} -> ${ROOT_TARGET_FOLDER}/${target_folder}] (success)"
+          _echo "copied [${ROOT_SOURCE_FOLDER}/${source_folder}/${source_files} -> ${ROOT_TARGET_FOLDER}/${target_folder}] (success)"
         else
-          echo "failed to copy [${ROOT_SOURCE_FOLDER}/${source_folder}/${source_files} -> ${ROOT_TARGET_FOLDER}/${target_folder}] (failure [...])"
-          echo "current_folder:${PWD}"
+          _echo "failed to copy [${ROOT_SOURCE_FOLDER}/${source_folder}/${source_files} -> ${ROOT_TARGET_FOLDER}/${target_folder}] (failure [...])"
+          _echo "current_folder:${PWD}"
         fi
       fi
     fi
@@ -360,8 +360,8 @@ function moveFolder() {
   target_folder="${target_folder#/}"
   # make sure the source folder exist
   if [ ! -d "${ROOT_SOURCE_FOLDER}/${source_folder}" ]; then
-    echo "failed to copy [${ROOT_SOURCE_FOLDER}/${source_folder} -> ${ROOT_TARGET_FOLDER}/${target_folder}] since source folder does not exist. (failure )"
-    echo "current_folder:${PWD}"
+    _echo "failed to copy [${ROOT_SOURCE_FOLDER}/${source_folder} -> ${ROOT_TARGET_FOLDER}/${target_folder}] since source folder does not exist. (failure )"
+    _echo "current_folder:${PWD}"
   else
     # make sure the target folder exist
     if [ ! -f "${ROOT_TARGET_FOLDER}/${target_folder}" ]; then
@@ -371,10 +371,10 @@ function moveFolder() {
     # copy both files and sub-folders recursive by force
     cp -fr "${ROOT_SOURCE_FOLDER}/${source_folder}/"* "${ROOT_TARGET_FOLDER}/${target_folder}"
     if [ $? -eq 0 ]; then
-      echo "copied [${ROOT_SOURCE_FOLDER}/${source_folder}/* -> ${ROOT_TARGET_FOLDER}/${target_folder}] (success)"
+      _echo "copied [${ROOT_SOURCE_FOLDER}/${source_folder}/* -> ${ROOT_TARGET_FOLDER}/${target_folder}] (success)"
     else
-      echo "failed to copy [${ROOT_SOURCE_FOLDER}/${source_folder}/* -> ${ROOT_TARGET_FOLDER}/${target_folder}] (failure [*])"
-      echo "current_folder:${PWD}"
+      _echo "failed to copy [${ROOT_SOURCE_FOLDER}/${source_folder}/* -> ${ROOT_TARGET_FOLDER}/${target_folder}] (failure [*])"
+      _echo "current_folder:${PWD}"
     fi
   fi
 }
@@ -383,17 +383,17 @@ function moveFolder() {
 function mergeChanges() {
   # we first check if there are changes
   if [[ -z $(git status --porcelain) ]]; then
-    echo "There has been no changes to the target repository, so noting to commit."
+    _echo "There has been no changes to the target repository, so noting to commit."
     return 1
   else
     # make a commit of the changes
     git add .
-    git commit -am"$BOT_NAME [merge:${STARTDATE}]"
+    git commit -am"$BOT_NAME [merge:${START_DATE}]"
     if [ $? -eq 0 ]; then
-      echo "Changes were committed."
+      _echo "Changes were committed."
       return 0
     else
-      echo "Failed to commit changed"
+      _echo "Failed to commit changed"
       retunr 1
     fi
   fi
@@ -403,7 +403,7 @@ function mergeChanges() {
 function makeMergeToTarget() {
   # we dont make changes to remote repos while testing
   if (("$TEST" == 1)); then
-    echo "changes where not merged (test mode)"
+    _echo "changes where not merged (test mode)"
     return 0
   fi
   # push the changes
@@ -420,7 +420,7 @@ function makeMergeToTarget() {
 function makePullRequestAgainstTarget() {
   # we dont make changes to remote repos while testing
   if (("$TEST" == 1)); then
-    echo "pull request was not made (test mode)"
+    _echo "pull request was not made (test mode)"
     return 0
   fi
   # check if this is a fork (should always be)
@@ -435,35 +435,42 @@ function makePullRequestAgainstTarget() {
 
 # create the pull request
 function createPullRequest() {
-  echo "we need github CLI to do this"
+  _echo "we need github CLI to do this"
   return 0
+}
+
+# give the echo messages
+# only if not set to be quiet
+function _echo() {
+  if (("$QUIET" == 0)); then
+    echo "$1"
+  fi
 }
 
 # give the final
 function finalMessage() {
   # set the build time
-  ENDBUILD=$(date +"%s")
-  SECONDSBUILD=$((ENDBUILD - STARTBUILD))
-  # use UTC+00:00 time also called zulu
-  ENDDATE=$(TZ=":ZULU" date +"%m/%d/%Y @ %R (UTC)")
-  echo "======================================================"
-  echo "$1"
-  echo
-  echo "  (selected folders/files)"
-  echo "  source:${SOURCE_REPO}"
-  echo "   $2"
-  echo "  target:${TARGET_REPO}"
-  echo
-  echo "====> date:${STARTDATE}"
-  echo "====> duration:${SECONDSBUILD} seconds"
-  echo "======================================================"
-  echo
+  END_BUILD=$(date +"%s")
+  SECONDS_BUILD=$((END_BUILD - START_BUILD))
+  cat <<EOF
+ ======================================================
+ $1
+
+  (selected folders/files)
+  source:${SOURCE_REPO}
+   $2
+  target:${TARGET_REPO}
+
+ ====> date:${START_DATE}
+ ====> duration:${SECONDS_BUILD} seconds
+ ======================================================
+EOF
   exit 0
 }
 
 # set any/all configuration values
 function setConfValues() {
-  if [ -f $CONFIG_FILE ]; then
+  if [ -f "$CONFIG_FILE" ]; then
     # set all configuration values
     # see: conf/example (for details)
     SOURCE_REPO=$(getConfVal "source\.repo\.path" "${SOURCE_REPO}")
@@ -483,27 +490,31 @@ function setConfValues() {
 # get default properties from config file
 function getConfVal() {
   local PROP_KEY="$1"
-  local PROP_VALUE=$(cat $CONFIG_FILE | grep "$PROP_KEY" | cut -d'=' -f2)
+  local PROP_VALUE
+  # get the value if set
+  PROP_VALUE=$(cat "$CONFIG_FILE" | grep "$PROP_KEY" | cut -d'=' -f2)
   echo "${PROP_VALUE:-$2}"
 }
 
 # show the configuration values
 function showConfValues() {
-  echo "======================================================"
-  echo "		${BOT_NAME}"
-  echo "======================================================"
-  echo "CONFIG_FILE:          ${CONFIG_FILE}"
-  echo "TEST:                 ${TEST}"
-  echo "SOURCE_REPO:          ${SOURCE_REPO}"
-  echo "SOURCE_REPO_BRANCH:   ${SOURCE_REPO_BRANCH}"
-  echo "SOURCE_REPO_FOLDERS:  ${SOURCE_REPO_FOLDERS}"
-  echo "SOURCE_REPO_FILES:    ${SOURCE_REPO_FILES}"
-  echo "TARGET_REPO:          ${TARGET_REPO}"
-  echo "TARGET_REPO_BRANCH:   ${TARGET_REPO_BRANCH}"
-  echo "TARGET_REPO_FOLDERS:  ${TARGET_REPO_FOLDERS}"
-  echo "TARGET_REPO_ACTION:   ${TARGET_REPO_ACTION}"
-  echo "TARGET_REPO_FORK:     ${TARGET_REPO_FORK}"
-  echo "======================================================"
+  cat <<EOF
+ ======================================================
+			${BOT_NAME}
+ ======================================================
+   CONFIG_FILE:          ${CONFIG_FILE}
+   TEST:                 ${TEST}
+   SOURCE_REPO:          ${SOURCE_REPO}
+   SOURCE_REPO_BRANCH:   ${SOURCE_REPO_BRANCH}
+   SOURCE_REPO_FOLDERS:  ${SOURCE_REPO_FOLDERS}
+   SOURCE_REPO_FILES:    ${SOURCE_REPO_FILES}
+   TARGET_REPO:          ${TARGET_REPO}
+   TARGET_REPO_BRANCH:   ${TARGET_REPO_BRANCH}
+   TARGET_REPO_FOLDERS:  ${TARGET_REPO_FOLDERS}
+   TARGET_REPO_ACTION:   ${TARGET_REPO_ACTION}
+   TARGET_REPO_FORK:     ${TARGET_REPO_FORK}
+ ======================================================
+EOF
 }
 
 # help message ʕ•ᴥ•ʔ
@@ -516,20 +527,84 @@ Usage: ${0##*/:-} [OPTION...]
 	set all the config properties with a file
 
 	properties examples are:
-    source.repo.path=[org]/[repo]
-    source.repo.branch=[branch]
-    source.repo.folders=[folder/path_a;folder/path_b]
-    source.repo.files=[0;a-file.js,b-file.js]
-    target.repo.path=[org]/[repo]
-    target.repo.branch=[branch]
-    target.repo.folders=[folder/path_a;folder/path_b]
-     # To merge or just make a PR (0 = PR; 1 = Merge)
-    target.repo.merge=1
-     # Target fork is rebased then updated and used to make a PR or Merge
-    target.repo.fork=[org]/[repo]
-  see: conf/example
+		source.repo.path=[org]/[repo]
+		source.repo.branch=[branch]
+		source.repo.folders=[folder/path_a;folder/path_b]
+		source.repo.files=[0;a-file.js,b-file.js]
+		target.repo.path=[org]/[repo]
+		target.repo.branch=[branch]
+		target.repo.folders=[folder/path_a;folder/path_b]
+			# To merge or just make a PR (0 = PR; 1 = Merge)
+		target.repo.merge=1
+			# Target fork is rebased then updated and used to make a PR or Merge
+		target.repo.fork=[org]/[repo]
+	see: conf/example
 
 	example: ${0##*/:-} --conf=/home/$USER/.config/repos-to-sync.conf
+	======================================================
+   --source-path=[org]/[repo]
+	set the source repository path as found on github (for now)
+
+	example: ${0##*/:-} --source-path=Octoleo/Octosync
+	======================================================
+   --source-branch=[branch-name]
+	set the source repository branch name
+
+	example: ${0##*/:-} --source-branch=master
+	======================================================
+   --source-folders=[folder-path]
+	set the source folder path
+	separate multiple paths with a semicolon
+
+	example: ${0##*/:-} --source-folders=folder/path1;folder/path2
+	======================================================
+   --source-files=[files]
+	set the source files
+		omitting this will sync all files in the folders
+		separate multiple folders files with a semicolon
+		separate multiple files in a folder with a comma
+		each set of files will require the same number(position) path in the --source-folders
+		[dynamic options]
+			setting a 0 in a position will allow all files & sub-folders of that folder to be synced
+			setting a 1 in a position will allow only all files in that folder to be synced
+			setting a 2 in a position will allow only all sub-folders in that folder to be synced
+		see: conf/example (more details)
+
+	example: ${0##*/:-} --source-files=file.txt,file2.txt;0
+	======================================================
+   --target-path=[org]/[repo]
+	set the target repository path as found on github (for now)
+
+	example: ${0##*/:-} --target-path=MyOrg/Octosync
+	======================================================
+   --target-branch=[branch-name]
+	set the target repository branch name
+
+	example: ${0##*/:-} --target-branch=master
+	======================================================
+   --target-folders=[folder-path]
+	set the target folder path
+	separate multiple paths with a semicolon
+
+	example: ${0##*/:-} --target-folders=folder/path1;folder/path2
+	======================================================
+   --target-fork=[org]/[repo]
+	set the target fork repository path as found on github (for now)
+	the target fork is rebased then updated and used to make a PR or Merge
+
+	example: ${0##*/:-} --target-fork=MyOrg/Octosync
+	======================================================
+   -m | --target-repo-merge | --target-merge
+	force direct merge behaviour if permissions allow
+	example: ${0##*/:-} -m
+	======================================================
+   -pr | --target-repo-pull-request | --target-pull-request
+	create a pull request instead of a direct merge if permissions allow
+	example: ${0##*/:-} -pr
+	======================================================
+   --target-token=xxxxxxxxxxxxxxxxxxxxxxx
+	pass the token needed to merge or create a pull request on the target repo
+	example: ${0##*/:-} --target-token=xxxxxxxxxxxxxxxxxxxxxxx
 	======================================================
    --test
 	activate the test behaviour
@@ -552,7 +627,9 @@ EOF
 # DEFAULTS/GLOBALS
 CONFIG_FILE=""
 TEST=0
-DRYRUN=0
+DRY_RUN=0
+QUIET=0
+TARGET_REPO_TOKEN=""
 
 # local repo folders
 ROOT_SOURCE_FOLDER="source_repo"
@@ -578,7 +655,10 @@ while :; do
     exit
     ;;
   --dry)
-    DRYRUN=1
+    DRY_RUN=1
+    ;;
+  -q | --quiet)
+    QUIET=1
     ;;
   --test) # set the test behaviour
     TEST=1
@@ -599,6 +679,156 @@ while :; do
     echo 'ERROR: "--conf=" requires a non-empty option argument.'
     exit 17
     ;;
+  --source-repo-path | --source-path) # Takes an option argument; ensure it has been specified.
+    if [ "$2" ]; then
+      SOURCE_REPO=$2
+      shift
+    else
+      echo 'ERROR: "--source-repo-path" requires a non-empty option argument.'
+      exit 17
+    fi
+    ;;
+  --source-repo-path=?* | --source-path=?*)
+    SOURCE_REPO=${1#*=} # Delete everything up to "=" and assign the remainder.
+    ;;
+  --source-repo-path= | --source-path=) # Handle the case of an empty --source-repo-path=
+    echo 'ERROR: "--source-repo-path=" requires a non-empty option argument.'
+    exit 17
+    ;;
+  --source-repo-branch | --source-branch) # Takes an option argument; ensure it has been specified.
+    if [ "$2" ]; then
+      SOURCE_REPO_BRANCH=$2
+      shift
+    else
+      echo 'ERROR: "--source-repo-branch" requires a non-empty option argument.'
+      exit 17
+    fi
+    ;;
+  --source-repo-branch=?* | --source-branch=?*)
+    SOURCE_REPO_BRANCH=${1#*=} # Delete everything up to "=" and assign the remainder.
+    ;;
+  --source-repo-branch= | --source-branch=) # Handle the case of an empty --source-repo-branch=
+    echo 'ERROR: "--source-repo-branch=" requires a non-empty option argument.'
+    exit 17
+    ;;
+  --source-repo-folders | --source-folders) # Takes an option argument; ensure it has been specified.
+    if [ "$2" ]; then
+      SOURCE_REPO_FOLDERS=$2
+      shift
+    else
+      echo 'ERROR: "--source-repo-folders" requires a non-empty option argument.'
+      exit 17
+    fi
+    ;;
+  --source-repo-folders=?* | --source-folders=?*)
+    SOURCE_REPO_FOLDERS=${1#*=} # Delete everything up to "=" and assign the remainder.
+    ;;
+  --source-repo-folders= | --source-folders=) # Handle the case of an empty --source-repo-folders=
+    echo 'ERROR: "--source-repo-folders=" requires a non-empty option argument.'
+    exit 17
+    ;;
+  --source-repo-files | --source-files) # Takes an option argument; ensure it has been specified.
+    if [ "$2" ]; then
+      SOURCE_REPO_FILES=$2
+      shift
+    else
+      echo 'ERROR: "--source-repo-files" requires a non-empty option argument.'
+      exit 17
+    fi
+    ;;
+  --source-repo-files=?* | --source-files=?*)
+    SOURCE_REPO_FILES=${1#*=} # Delete everything up to "=" and assign the remainder.
+    ;;
+  --source-repo-files= | --source-files=) # Handle the case of an empty --source-repo-files=
+    echo 'ERROR: "--source-repo-files=" requires a non-empty option argument.'
+    exit 17
+    ;;
+  --target-repo-path | --target-path) # Takes an option argument; ensure it has been specified.
+    if [ "$2" ]; then
+      TARGET_REPO=$2
+      shift
+    else
+      echo 'ERROR: "--target-repo-path" requires a non-empty option argument.'
+      exit 17
+    fi
+    ;;
+  --target-repo-path=?* | --target-path=?*)
+    TARGET_REPO=${1#*=} # Delete everything up to "=" and assign the remainder.
+    ;;
+  --target-repo-path= | --target-path=) # Handle the case of an empty --target-repo-path=
+    echo 'ERROR: "--target-repo-path=" requires a non-empty option argument.'
+    exit 17
+    ;;
+  --target-repo-branch | --target-branch) # Takes an option argument; ensure it has been specified.
+    if [ "$2" ]; then
+      TARGET_REPO_BRANCH=$2
+      shift
+    else
+      echo 'ERROR: "--target-repo-branch" requires a non-empty option argument.'
+      exit 17
+    fi
+    ;;
+  --target-repo-branch=?* | --target-branch=?*)
+    TARGET_REPO_BRANCH=${1#*=} # Delete everything up to "=" and assign the remainder.
+    ;;
+  --target-repo-branch= | --target-branch=) # Handle the case of an empty --target-repo-branch=
+    echo 'ERROR: "--target-repo-branch=" requires a non-empty option argument.'
+    exit 17
+    ;;
+  --target-repo-folders | --target-folders) # Takes an option argument; ensure it has been specified.
+    if [ "$2" ]; then
+      TARGET_REPO_FOLDERS=$2
+      shift
+    else
+      echo 'ERROR: "--target-repo-folders" requires a non-empty option argument.'
+      exit 17
+    fi
+    ;;
+  --target-repo-folders=?* | --target-folders=?*)
+    TARGET_REPO_FOLDERS=${1#*=} # Delete everything up to "=" and assign the remainder.
+    ;;
+  --target-repo-folders= | --target-folders=) # Handle the case of an empty --target-repo-folders=
+    echo 'ERROR: "--target-repo-folders=" requires a non-empty option argument.'
+    exit 17
+    ;;
+  --target-repo-fork | --target-fork) # Takes an option argument; ensure it has been specified.
+    if [ "$2" ]; then
+      TARGET_REPO_FORK=$2
+      shift
+    else
+      echo 'ERROR: "--target-repo-fork" requires a non-empty option argument.'
+      exit 17
+    fi
+    ;;
+  --target-repo-fork=?* | --target-fork=?*)
+    TARGET_REPO_FORK=${1#*=} # Delete everything up to "=" and assign the remainder.
+    ;;
+  --target-repo-fork= | --target-fork=) # Handle the case of an empty --target-repo-fork=
+    echo 'ERROR: "--target-repo-fork=" requires a non-empty option argument.'
+    exit 17
+    ;;
+  -m | --target-repo-merge | --target-merge) # To merge changes into target repository
+    TARGET_REPO_ACTION=1 # (1 = merge)
+    ;;
+  -pr | --target-repo-pull-request | --target-pull-request) # To make a pull request into target repository
+    TARGET_REPO_ACTION=0 # (0 = pull request)
+    ;;
+  --target-repo-token | --target-token) # Takes an option argument; ensure it has been specified.
+    if [ "$2" ]; then
+      TARGET_REPO_TOKEN=$2
+      shift
+    else
+      echo 'ERROR: "--target-repo-token" requires a non-empty option argument.'
+      exit 17
+    fi
+    ;;
+  --target-repo-token=?* | --target-token=?*)
+    TARGET_REPO_TOKEN=${1#*=} # Delete everything up to "=" and assign the remainder.
+    ;;
+  --target-repo-token= | --target-token=) # Handle the case of an empty --target-repo-token=
+    echo 'ERROR: "--target-repo-token=" requires a non-empty option argument.'
+    exit 17
+    ;;
   *) # Default case: No more options, so break out of the loop.
     break ;;
   esac
@@ -615,14 +845,13 @@ if [[ "${CONFIG_FILE}" =~ ^"http:" ]] || [[ "${CONFIG_FILE}" =~ ^"https:" ]]; th
     exit 18
   fi
 fi
-# We must have a config file
-[ ! -f "${CONFIG_FILE}" ] && echo >&2 "The config:${CONFIG_FILE} is not set or found. Aborting." && exit 18
 
 # set the configuration values
+# config file can override commands passed
 setConfValues
 
 # show the config values ¯\_(ツ)_/¯
-if (("$DRYRUN" == 1)); then
+if (("$DRY_RUN" == 1)); then
   showConfValues
   exit 0
 fi
